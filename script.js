@@ -5,6 +5,9 @@ const orbitContainer = document.querySelector('.orbit-container');
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendButton = document.getElementById('send-button');
+const artistNameElement = document.getElementById('artist-name');
+const spaceDustContainer = document.querySelector('.space-dust');
+const videoPortal = document.querySelector('.video-portal');
 
 // App State
 const state = {
@@ -12,6 +15,7 @@ const state = {
     authenticated: false,
     walletCreated: false,
     artistockMinted: false,
+    currentArtist: 'GOSHEESH',
     messages: []
 };
 
@@ -24,14 +28,28 @@ const tokens = [
     { id: 5, name: 'Nebula' }
 ];
 
+// Artist Data (For future expansion)
+const artists = [
+    { 
+        id: 1, 
+        name: 'GOSHEESH', 
+        videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        spotifyId: 'spotify-id-here'
+    }
+    // More artists will be added here in the future
+];
+
 // Initialize the app
 function init() {
     createOrbitingTokens();
     setupEventListeners();
     
+    // Set initial artist
+    updateArtist(state.currentArtist);
+    
     // Simulate initial chat after page load
     setTimeout(() => {
-        addSystemMessage("✨ This unlocks a rare GOSHEESH track.", true);
+        addSystemMessage(`✨ This unlocks a rare ${state.currentArtist} track.`, true);
         
         setTimeout(() => {
             addAuthButtons();
@@ -40,6 +58,20 @@ function init() {
 
     // Set up particle animation
     createParticles();
+    
+    // Create space dust
+    createSpaceDust();
+}
+
+// Update artist information
+function updateArtist(artistName) {
+    state.currentArtist = artistName;
+    artistNameElement.textContent = artistName;
+    
+    // Update document title
+    document.title = `${artistName} | ZEYODA`;
+    
+    // In the future, this would update video source, tokens, etc.
 }
 
 // Create orbiting tokens with animation
@@ -67,12 +99,42 @@ function positionTokenAtAngle(tokenElement, angle) {
     const y = Math.sin(angle) * orbitRadius;
     
     tokenElement.style.transform = `translate(${x}px, ${y}px)`;
+    
+    // Check if token is behind the video for depth perception
+    checkTokenDepth(tokenElement, angle);
+}
+
+// Check if token is behind the video for depth effect
+function checkTokenDepth(tokenElement, angle) {
+    // Get token and video positions
+    const tokenRect = tokenElement.getBoundingClientRect();
+    const videoRect = videoPortal.getBoundingClientRect();
+    
+    // Calculate token center
+    const tokenCenterX = tokenRect.left + (tokenRect.width / 2);
+    const tokenCenterY = tokenRect.top + (tokenRect.height / 2);
+    
+    // Check if token is behind video
+    const isInVideoArea = 
+        tokenCenterX > videoRect.left &&
+        tokenCenterX < videoRect.right &&
+        tokenCenterY > videoRect.top &&
+        tokenCenterY < videoRect.bottom;
+    
+    // Token is behind if in video area AND in back half of orbit (based on angle)
+    const isInBackHalf = angle > Math.PI / 2 && angle < (3 * Math.PI) / 2;
+    
+    if (isInVideoArea && isInBackHalf) {
+        tokenElement.classList.add('behind-video');
+    } else {
+        tokenElement.classList.remove('behind-video');
+    }
 }
 
 // Animate orbiting tokens
 function animateOrbit() {
     let angle = 0;
-    const speed = 0.0005; // Controls orbit speed
+    const speed = 0.005; // Controls orbit speed
     
     function animate() {
         angle += speed;
@@ -107,6 +169,35 @@ function createParticles() {
         particle.style.animation = `stars-movement ${20 + Math.random() * 80}s linear infinite`;
         
         particlesContainer.appendChild(particle);
+    }
+}
+
+// Create space dust particles
+function createSpaceDust() {
+    const dustCount = 25;
+    
+    for (let i = 0; i < dustCount; i++) {
+        const dust = document.createElement('div');
+        dust.classList.add('dust-particle');
+        
+        // Random size between 1-3px
+        const size = 1 + Math.random() * 2;
+        dust.style.width = `${size}px`;
+        dust.style.height = `${size}px`;
+        
+        // Random starting position
+        dust.style.left = `${Math.random() * 100}%`;
+        dust.style.bottom = `-${Math.random() * 20}px`;
+        
+        // Random animation delay
+        dust.style.animationDelay = `${Math.random() * 15}s`;
+        
+        // Random drift amount
+        const drift = Math.random() * 100 - 50;
+        dust.style.animationName = 'float-dust';
+        
+        // Add to container
+        spaceDustContainer.appendChild(dust);
     }
 }
 
@@ -274,7 +365,7 @@ function addFollowUpOptions() {
     
     const optionsContent = `
         <div class="message-button" id="play-again">▶️ Watch Again</div>
-        <div class="message-button" id="spotify-follow">🎧 Follow on Spotify</div>
+        <div class="message-button" id="spotify-follow">🎧 Follow ${state.currentArtist} on Spotify</div>
         <div class="message-button" id="explore-more">🌌 Explore More Artists</div>
     `;
     
@@ -290,11 +381,16 @@ function addFollowUpOptions() {
     });
     
     document.getElementById('spotify-follow').addEventListener('click', () => {
-        window.open('https://open.spotify.com/artist/spotify-id-here', '_blank');
+        // Find the current artist's Spotify ID
+        const artist = artists.find(a => a.name === state.currentArtist);
+        const spotifyId = artist ? artist.spotifyId : 'spotify-id-here';
+        window.open(`https://open.spotify.com/artist/${spotifyId}`, '_blank');
     });
     
     document.getElementById('explore-more').addEventListener('click', () => {
         addSystemMessage("More artists coming soon to ZEYODA!");
+        
+        // This would be expanded in the future to show artist selection
     });
 }
 
